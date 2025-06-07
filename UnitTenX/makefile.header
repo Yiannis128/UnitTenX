@@ -1,0 +1,7 @@
+AGENT_REMOTE_VERSION = 10
+USER = coelho
+REMOTE_PASSWORD = T@stFreeBSD
+IP = `python virtualbox.py ip`
+MODEL_NAME = openai
+MAX_RETRIES = 4
+

@@ -1,0 +1,7 @@
+# Copyright 2025 Claudionor N. Coelho Jr
+
+# we need to specify these because the AutoMockup code cannot presently figure
+# figure out which package to use.
+
+respond: rbldns.c
+initialize: rbldns.c

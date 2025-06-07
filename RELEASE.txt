@@ -1,0 +1,29 @@
+02/07/2025:
+
+- Added support for abstract data types, i.e. when several functions used to 
+  access a global resource.
+- Created one more LLM interaction to assist generating a partially correct 
+  extern "C" interface.
+- Enhanced DB to add information on name modification (to avoid clashing of
+  names in static functions).
+- Fixed bug on #define's when internal names clash with variable names that
+  we are changing (for example, static int u; #define A(u) u+1 would trigger
+  the bug, as we want to change the first "u", but not the second and third
+  ones.
+- Added rate control to enable Anthropic to run.
+- Added timeout with retries in case we lose the connection.
+
+01/17/2025:
+
+- Support from Anthropic and OpenAI with new prompts.
+- Move "core dump" handling from reflection to get_coverage_cc.py because when a core dump
+  happens, we do not have any other message other than that it crashed. This was making the
+  loop in the reflection too long to solve with countless calls to slow LLMs.
+- Fixed bug that when we do not pass -I, but put every include in --cflags, it is propagated
+  to -I.
+- We extract the function interface and include files for extern "C" { ... } in the test
+  function. If one of the parameters were an user defined type, it making the LLM confused.
+
+12/14/2024:
+
+- Initial offical release.
