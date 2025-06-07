@@ -117,4 +117,4 @@ c. `ESBMC_FLAGS`: additional flags can be set here.
 
 Copyright 2025 Claudionor N. Coelho Jr 
 
-License terms: Modified BSD License (in file LICENSE.txt)
+License terms: Modified BSD License (in file LICENSE)
