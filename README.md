@@ -76,11 +76,11 @@ D. J. Bernstein.
 # To run UnitTenX on djbdns
 
 1. Make sure you compile and install ESBMC from https://github.com/esbmc/esbmc/
-2. Install gcc / gcov / llvm. I used gcc and gcov v13.3. 
-2. Look at the Makefile
-3. Make sure you have installed either OpenAI or Anthropic and get either `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`, respectively specified in your shell. If you use OpenAI, set `model_name` in the Makefile to openai. If you use Anthropic, set `model_name` in the Makefile to anthropic.
-4. Set the appropriate directory where you want to store the results in `WORK`. Your project directory must be set in `PROJECT`.
-5. Execute the following commands to create the `AutoMockups`.
+2. Install gcc / gcov / llvm. I used gcc and gcov v13.3.
+3. Look at the Makefile
+4. Make sure you have installed either OpenAI or Anthropic and get either `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`, respectively specified in your shell. If you use OpenAI, set `model_name` in the Makefile to openai. If you use Anthropic, set `model_name` in the Makefile to anthropic.
+5. Set the appropriate directory where you want to store the results in `WORK`. Your project directory must be set in `PROJECT`.
+6. Execute the following commands to create the `AutoMockups`.
 
 ```bash
 make create_project
@@ -89,10 +89,10 @@ make build_project
 
 At this time, the directory specified in `WORK` will be created, and all mockups will be stored in `$WORK/mockups`.
 
-6. Do `cd $WORK`, and execute `make <one of the tests>` or `make <all>`. Tests are created in the directory `$WORK/tests`.
-7. I usually do `script` before step 6, so I can look at the messages if doing `make <all>`.
-8. Sit and relax
-9. If you want to look at the results:
+7. Do `cd $WORK`, and execute `make <one of the tests>` or `make <all>`. Tests are created in the directory `$WORK/tests`.
+8. I usually do `script` before step 6, so I can look at the messages if doing `make <all>`.
+9. Sit and relax
+10. If you want to look at the results:
 
 ```bash
 cd $WORK
@@ -101,12 +101,14 @@ cd $WORK
 ./check_crashes.sh
 ```
 
-10. Known issues and bugs.
+11. Known issues and bugs.
 
 - I used a short timeout in ESBMC, sometimes, you may need to increase the timeout, or the unrolling value.
 
 a. `ESBMC_UNWIND`: how to unroll loops (by default, it is set to 20).
+
 b. `ESBMC_TIMEOUT`: set to 10s. If you need more time, specify something like '10s'.
+
 c. `ESBMC_FLAGS`: additional flags can be set here.
 
 - For complex code, if ESBMC fails, you will most likely not achieve 100% code coverage.
