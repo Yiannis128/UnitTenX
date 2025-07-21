@@ -1,0 +1,15 @@
+test-djbdns/info
+test-djbdns/mockups
+test-djbdns/test
+all_logs.log
+*.pyc
+UnitTenX/test
+UnitTenX/work
+data.csv
+images/crash.png
+images/UnitTenX.png
+images/rq1_coverage_improvement.png
+images/rq2_error_handling.png
+images/rq3_reflection_feedback.png
+images/rq4_edge_cases.png
+images/rq5_robustness.png
