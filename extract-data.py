@@ -15,6 +15,7 @@ This script extracts data for all five research questions:
 import re
 import csv
 import sys
+import os
 from pathlib import Path
 
 
@@ -33,6 +34,29 @@ def parse_log(text: str):
         if match := re.search(r"make -f \S+ (i_[\w]+)", line):
             # Save previous execution if exists
             if current_execution:
+                # Calculate derived metrics for previous execution
+                if (
+                    current_execution["initial_rating"] is not None
+                    and current_execution["final_rating"] is not None
+                ):
+                    current_execution["rating_improvement"] = (
+                        current_execution["final_rating"]
+                        - current_execution["initial_rating"]
+                    )
+                else:
+                    current_execution["rating_improvement"] = 0
+
+                # Check if max iterations reached (configurable via env var)
+                max_iter_threshold = int(os.getenv("UNITTENX_MAX_ITERATIONS", "4"))
+                current_execution["max_iterations_reached"] = (
+                    1
+                    if current_execution["total_iterations"] >= max_iter_threshold
+                    else 0
+                )
+
+                # Clean up temporary tracking fields
+                current_execution.pop("last_seen_iteration", None)
+
                 rows.append(current_execution)
 
             current_execution = {
@@ -49,8 +73,6 @@ def parse_log(text: str):
                 "test_cases_generated": 0,
                 "test_cases_crashed": 0,
                 "symbolic_test_cases": 0,
-                "edge_cases_detected": 0,
-                "boundary_values_tested": 0,
                 "missing_coverage_lines": 0,
                 "coverage_success": 0,
                 "recovery_actions": 0,
@@ -58,12 +80,11 @@ def parse_log(text: str):
                 "esbmc_successful": 0,
                 "compilation_attempts": 0,
                 "successful_compilations": 0,
-                "runtime_errors": 0,
                 "impossible_cache_calls": 0,
-                "cache_size_boundary_tests": 0,
                 "null_pointer_tests": 0,
                 "performance_timeouts": 0,
                 "reflection_feedback_provided": 0,
+                "last_seen_iteration": 0,  # For tracking unique iterations
             }
             continue
 
@@ -76,7 +97,10 @@ def parse_log(text: str):
             current_execution["total_iterations"] = max(
                 current_execution["total_iterations"], iteration_num
             )
-            current_execution["reflection_cycles"] += 1
+            # Only increment reflection_cycles once per unique iteration number
+            if iteration_num > current_execution.get("last_seen_iteration", 0):
+                current_execution["reflection_cycles"] += 1
+                current_execution["last_seen_iteration"] = iteration_num
 
         # ── Symbolic engine phase ─────────────────────────────────
         if "entering symbolic engine" in line:
@@ -98,12 +122,13 @@ def parse_log(text: str):
             rating = int(match.group(1))
             if current_execution["initial_rating"] is None:
                 current_execution["initial_rating"] = rating
-            current_execution["final_rating"] = rating
+                current_execution["final_rating"] = rating  # Initialize final_rating
+            else:
+                # Only update final_rating if we've seen initial_rating
+                current_execution["final_rating"] = rating
 
         # ── Error detection ───────────────────────────────────────
-        if "error:" in line.lower() and (
-            "make[" in line or "compilation" in line.lower()
-        ):
+        if "stopping at make compile because of an error" in line:
             current_execution["compilation_errors"] += 1
 
         if "compilation" in line.lower() and "attempt" in line.lower():
@@ -111,8 +136,8 @@ def parse_log(text: str):
 
         if "Segmentation fault" in line:
             current_execution["segmentation_faults"] += 1
-            current_execution["runtime_errors"] += 1
 
+        # TODO Either this or "Timeout reached" - not sure which
         if "ERROR: function executed exceeded timeout limit" in line:
             current_execution["timeouts"] += 1
             current_execution["performance_timeouts"] += 1
@@ -133,34 +158,6 @@ def parse_log(text: str):
                     [x for x in lines_str.split(",") if x]
                 )
 
-        # ── Edge case and boundary value detection ────────────────
-        edge_values = {
-            0,
-            1,
-            99,
-            100,
-            101,
-            999,
-            1000,
-            1001,
-            999999999,
-            1000000000,
-            1000000001,
-        }
-        numbers_in_line = [int(x) for x in re.findall(r"\b\d+\b", line) if x.isdigit()]
-
-        for num in numbers_in_line:
-            try:
-                num_int = int(num)
-                if num_int in edge_values:
-                    current_execution["edge_cases_detected"] += 1
-                    if num_int in {99, 100, 101, 999999999, 1000000000, 1000000001}:
-                        current_execution["boundary_values_tested"] += 1
-                        if "cache" in line.lower() and "size" in line.lower():
-                            current_execution["cache_size_boundary_tests"] += 1
-            except ValueError:
-                continue
-
         # ── Special case detections ───────────────────────────────
         if "cache_impossible" in line:
             current_execution["impossible_cache_calls"] += 1
@@ -173,9 +170,8 @@ def parse_log(text: str):
             current_execution["esbmc_successful"] += 1
 
         # ── Compilation success ───────────────────────────────────
-        if "compilation successful" in line.lower() or (
-            "gcc" in line and "error" not in line.lower()
-        ):
+        # Only count actual successful compilations, not skipped builds
+        if "processing file" in line.lower():
             current_execution["successful_compilations"] += 1
 
         # ── Reflection feedback ───────────────────────────────────
@@ -185,14 +181,25 @@ def parse_log(text: str):
     # Add final execution
     if current_execution:
         # Calculate derived metrics
-        if current_execution["initial_rating"] and current_execution["final_rating"]:
+        if (
+            current_execution["initial_rating"] is not None
+            and current_execution["final_rating"] is not None
+        ):
             current_execution["rating_improvement"] = (
                 current_execution["final_rating"] - current_execution["initial_rating"]
             )
+        else:
+            current_execution["rating_improvement"] = 0
 
+        # Check if max iterations reached (configurable via env var)
+        max_iter_threshold = int(os.getenv("UNITTENX_MAX_ITERATIONS", "4"))
         current_execution["max_iterations_reached"] = (
-            1 if current_execution["total_iterations"] >= 4 else 0
+            1 if current_execution["total_iterations"] >= max_iter_threshold else 0
         )
+
+        # Clean up temporary tracking fields
+        current_execution.pop("last_seen_iteration", None)
+
         rows.append(current_execution)
 
     return rows
@@ -217,9 +224,6 @@ def write_csv(rows, outfile):
         "test_cases_generated",
         "test_cases_crashed",
         "symbolic_test_cases",
-        "edge_cases_detected",
-        "boundary_values_tested",
-        "cache_size_boundary_tests",
         "missing_coverage_lines",
         "coverage_success",
         "recovery_actions",
@@ -227,7 +231,6 @@ def write_csv(rows, outfile):
         "esbmc_successful",
         "compilation_attempts",
         "successful_compilations",
-        "runtime_errors",
         "impossible_cache_calls",
         "null_pointer_tests",
         "performance_timeouts",
@@ -238,8 +241,14 @@ def write_csv(rows, outfile):
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for row in rows:
-            # Only write fields that exist in fieldnames
-            filtered_row = {k: v for k, v in row.items() if k in fieldnames}
+            # Only write fields that exist in fieldnames and replace None with defaults
+            filtered_row = {}
+            for k in fieldnames:
+                value = row.get(k)
+                if value is None:
+                    filtered_row[k] = 0  # Default to 0 for all None values
+                else:
+                    filtered_row[k] = value
             writer.writerow(filtered_row)
 
     print(f"Successfully extracted data for {len(rows)} function executions")
@@ -271,8 +280,7 @@ def main():
         print("1. Coverage effectiveness")
         print("2. Error handling capabilities")
         print("3. Reflection loop contribution")
-        print("4. Edge case identification")
-        print("5. Robustness to failures")
+        print("4. Robustness to failures")
         sys.exit(1)
 
     logfile = Path(sys.argv[1])

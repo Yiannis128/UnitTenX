@@ -66,13 +66,13 @@ def plot_rq1_coverage_improvement(df: pd.DataFrame) -> None:
 def plot_rq2_error_handling(df: pd.DataFrame) -> None:
     """RQ2: How does UnitTenX handle compilation errors, runtime exceptions, and timeouts?"""
     # Use a non-square plot—rectangular is better for bar charts
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 6))
 
     error_types = [
         "compilation_errors",
         "segmentation_faults",
         "timeouts",
-        "runtime_errors",
+        "total_iterations",
     ]
     error_data = df[error_types].sum()
     colors = ["#ff6b6b", "#ffd93d", "#6bcf7f", "#4ecdc4"]
@@ -81,14 +81,14 @@ def plot_rq2_error_handling(df: pd.DataFrame) -> None:
     positions = np.arange(len(error_types))
     bars = plt.bar(positions, error_data, color=colors, alpha=0.8, width=0.5)
 
-    plt.xlabel("Error Types", fontsize=12, fontweight="bold")
+    plt.xlabel("Metrics", fontsize=12, fontweight="bold")
     plt.ylabel("Total Count", fontsize=12, fontweight="bold")
 
     labels = [
         "Compilation\nErrors",
         "Segmentation\nFaults",
         "Timeouts",
-        "Runtime\nErrors",
+        "Total\nIterations",
     ]
     plt.xticks(positions, labels, fontsize=11)
 
@@ -110,7 +110,7 @@ def plot_rq2_error_handling(df: pd.DataFrame) -> None:
 
 def plot_rq3_reflection_feedback(df: pd.DataFrame) -> None:
     """RQ3: How does the reflection and feedback loop contribute to iterative improvement?"""
-    create_square_plot()
+    plt.figure(figsize=(4, 4))
 
     # Scatter plot of reflection cycles vs rating improvement
     df["rating_improvement"] = df["final_rating"] - df["initial_rating"]
@@ -125,67 +125,34 @@ def plot_rq3_reflection_feedback(df: pd.DataFrame) -> None:
     )
 
     # Add trend line
-    z = np.polyfit(df["reflection_cycles"], df["rating_improvement"], 1)
-    p = np.poly1d(z)
-    plt.plot(
-        df["reflection_cycles"],
-        p(df["reflection_cycles"]),
-        "g--",
-        alpha=0.8,
-        linewidth=2,
-        label=f"Trend Line",
-    )
+    # z = np.polyfit(df["reflection_cycles"], df["rating_improvement"], 1)
+    # p = np.poly1d(z)
+    # plt.plot(
+    #     df["reflection_cycles"],
+    #     p(df["reflection_cycles"]),
+    #     "g--",
+    #     alpha=0.8,
+    #     linewidth=2,
+    #     label=f"Trend Line",
+    # )
 
     plt.xlabel("Number of Reflection Cycles", fontsize=12, fontweight="bold")
     plt.ylabel("Rating Improvement", fontsize=12, fontweight="bold")
     # plt.title(
     #     "RQ3: Reflection & Feedback Loop Impact", fontsize=14, fontweight="bold", pad=20
     # )
+
+    # Set y-axis to increment by 1
+    plt.gca().yaxis.set_major_locator(plt.MultipleLocator(1))
+
     plt.legend()
 
     save_plot("rq3_reflection_feedback.png")
 
 
-def plot_rq4_edge_cases(df: pd.DataFrame) -> None:
-    """RQ4: To what extent does UnitTenX identify and generate tests for edge cases?"""
-    create_square_plot()
-
-    # Scatter plot of edge cases detected vs boundary values tested
-    plt.scatter(
-        df["edge_cases_detected"],
-        df["boundary_values_tested"],
-        alpha=0.7,
-        s=60,
-        c="purple",
-        edgecolors="darkviolet",
-    )
-
-    plt.xlabel("Edge Cases Detected", fontsize=12, fontweight="bold")
-    plt.ylabel("Boundary Values Tested", fontsize=12, fontweight="bold")
-    # plt.title(
-    #     "RQ4: Edge Case & Boundary Condition Detection",
-    #     fontsize=14,
-    #     fontweight="bold",
-    #     pad=20,
-    # )
-
-    # Add correlation information
-    correlation = df["edge_cases_detected"].corr(df["boundary_values_tested"])
-    plt.text(
-        0.05,
-        0.95,
-        f"Correlation: {correlation:.3f}",
-        transform=plt.gca().transAxes,
-        fontsize=11,
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray"),
-    )
-
-    save_plot("rq4_edge_cases.png")
-
-
 def plot_rq5_robustness(df: pd.DataFrame) -> None:
     """RQ5: How robust is UnitTenX in maintaining test suite execution?"""
-    create_square_plot()
+    plt.figure(figsize=(4, 4))
 
     # Calculate success rate and plot against total iterations
     df["success_rate"] = (df["total_iterations"] - df["test_cases_crashed"]) / df[
@@ -218,12 +185,13 @@ def plot_rq5_robustness(df: pd.DataFrame) -> None:
 
     # Add legend for bubble sizes
     plt.text(
-        0.05,
-        0.05,
+        0.02,
+        0.90,
         "Bubble size represents\nrecovery actions taken",
         transform=plt.gca().transAxes,
-        fontsize=10,
+        fontsize=8,
         bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue"),
+        verticalalignment="top",
     )
 
     save_plot("rq5_robustness.png")
@@ -248,9 +216,6 @@ def main() -> None:
 
     plot_rq3_reflection_feedback(df)
     print("✓ RQ3: Reflection feedback plot generated")
-
-    plot_rq4_edge_cases(df)
-    print("✓ RQ4: Edge cases plot generated")
 
     plot_rq5_robustness(df)
     print("✓ RQ5: Robustness plot generated")
