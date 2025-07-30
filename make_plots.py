@@ -24,8 +24,8 @@ def save_plot(filename: str) -> None:
     plt.show()
 
 
-def plot_rq1_coverage_improvement(df: pd.DataFrame) -> None:
-    """RQ1: How effectively does UnitTenX generate unit tests that increase code coverage?"""
+def plot_rq1_test_quality_improvement(df: pd.DataFrame) -> None:
+    """RQ1: How effectively does UnitTenX generate unit tests that improve test quality?"""
     create_square_plot()
 
     # Scatter plot of initial vs final ratings
@@ -50,8 +50,8 @@ def plot_rq1_coverage_improvement(df: pd.DataFrame) -> None:
         label="No Improvement Line",
     )
 
-    plt.xlabel("Initial Rating (Coverage)", fontsize=12, fontweight="bold")
-    plt.ylabel("Final Rating (Coverage)", fontsize=12, fontweight="bold")
+    plt.xlabel("Initial Rating (Test Quality)", fontsize=12, fontweight="bold")
+    plt.ylabel("Final Rating (Test Quality)", fontsize=12, fontweight="bold")
     # plt.title(
     #     "RQ1: UnitTenX Coverage Improvement Effectiveness",
     #     fontsize=14,
@@ -60,7 +60,7 @@ def plot_rq1_coverage_improvement(df: pd.DataFrame) -> None:
     # )
     plt.legend()
 
-    save_plot("rq1_coverage_improvement.png")
+    save_plot("rq1_test_quality_improvement.png")
 
 
 def plot_rq2_error_handling(df: pd.DataFrame) -> None:
@@ -208,8 +208,8 @@ def main() -> None:
     # Generate plots for each research question
     print("\nGenerating plots for research questions...")
 
-    plot_rq1_coverage_improvement(df)
-    print("✓ RQ1: Coverage improvement plot generated")
+    plot_rq1_test_quality_improvement(df)
+    print("✓ RQ1: Test quality improvement plot generated")
 
     plot_rq2_error_handling(df)
     print("✓ RQ2: Error handling plot generated")

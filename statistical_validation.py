@@ -31,45 +31,49 @@ from scipy import stats
 
 
 def validate_rq1_claims():
-    """Validate the RQ1 claims about coverage improvement."""
+    """Validate the RQ1 claims about test quality improvement."""
     # Load the data
     df = pd.read_csv("data.csv")
     
-    print("=== RQ1 Claims Validation ===")
-    print(f"Total functions: {len(df)}")
+    print("=== RQ1 Test Quality Claims Validation ===")
+    print(f"Total entries in dataset: {len(df)}")
     
-    # Calculate coverage improvements
-    initial_coverage = df["initial_rating"].values
-    final_coverage = df["final_rating"].values
+    # Filter to functions that actually executed (had meaningful UnitTenX runs)
+    executed_functions = df[df["total_iterations"] > 0]
+    print(f"Functions that executed: {len(executed_functions)} ({len(executed_functions)/len(df)*100:.1f}%)")
     
-    # Functions that moved above diagonal (coverage improved)
-    improved = final_coverage > initial_coverage
+    # Calculate test quality improvements using only executed functions
+    initial_quality = executed_functions["initial_rating"].values
+    final_quality = executed_functions["final_rating"].values
+    
+    # Functions that moved above diagonal (test quality improved)
+    improved = final_quality > initial_quality
     num_improved = np.sum(improved)
-    improvement_percentage = (num_improved / len(df)) * 100
+    improvement_percentage = (num_improved / len(executed_functions)) * 100
     
-    print(f"\n1. Functions with improved coverage:")
-    print(f"   {num_improved}/{len(df)} functions ({improvement_percentage:.1f}%) moved above the diagonal")
+    print(f"\n1. Functions with improved test quality:")
+    print(f"   {num_improved}/{len(executed_functions)} functions ({improvement_percentage:.1f}%) moved above the diagonal")
     
-    # Calculate coverage gains (in percentage points)
-    coverage_gains = final_coverage - initial_coverage
-    coverage_gains_improved = coverage_gains[improved]
+    # Calculate test quality gains
+    quality_gains = final_quality - initial_quality
+    quality_gains_improved = quality_gains[improved]
     
-    # Median coverage gain
-    median_gain = np.median(coverage_gains_improved)
-    median_initial = np.median(initial_coverage[improved])
-    median_final = np.median(final_coverage[improved])
+    # Median test quality gain
+    median_gain = np.median(quality_gains_improved)
+    median_initial = np.median(initial_quality[improved])
+    median_final = np.median(final_quality[improved])
     
-    print(f"\n2. Median coverage gain:")
-    print(f"   Median gain: +{median_gain:.0f} pp (from {median_initial:.0f}% to {median_final:.0f}%)")
+    print(f"\n2. Median test quality gain:")
+    print(f"   Median gain: +{median_gain:.0f} points (from {median_initial:.0f} to {median_final:.0f})")
     
     # Largest single improvement
-    max_improvement = np.max(coverage_gains)
-    max_improvement_idx = np.argmax(coverage_gains)
-    max_initial = initial_coverage[max_improvement_idx]
-    max_final = final_coverage[max_improvement_idx]
+    max_improvement = np.max(quality_gains)
+    max_improvement_idx = np.argmax(quality_gains)
+    max_initial = initial_quality[max_improvement_idx]
+    max_final = final_quality[max_improvement_idx]
     
     print(f"\n3. Largest single improvement:")
-    print(f"   From {max_initial:.0f}% to {max_final:.0f}% (+{max_improvement:.0f} pp)")
+    print(f"   From {max_initial:.0f} to {max_final:.0f} (+{max_improvement:.0f} points)")
 
 
 def calculate_rq5_statistics():

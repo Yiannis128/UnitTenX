@@ -45,6 +45,15 @@ def parse_log(text: str):
                     )
                 else:
                     current_execution["rating_improvement"] = 0
+                
+                # Calculate total coverage improvement from 0% baseline
+                if current_execution["final_coverage_percentage"] is not None:
+                    current_execution["total_coverage_improvement"] = (
+                        current_execution["final_coverage_percentage"]
+                        - current_execution["baseline_coverage_percentage"]
+                    )
+                else:
+                    current_execution["total_coverage_improvement"] = 0
 
                 # Check if max iterations reached (configurable via env var)
                 max_iter_threshold = int(os.getenv("UNITTENX_MAX_ITERATIONS", "4"))
@@ -84,6 +93,9 @@ def parse_log(text: str):
                 "null_pointer_tests": 0,
                 "performance_timeouts": 0,
                 "reflection_feedback_provided": 0,
+                "baseline_coverage_percentage": 0.0,  # Assumed 0% for legacy untested code
+                "final_coverage_percentage": None,
+                "total_coverage_improvement": 0,  # Baseline (0%) to final improvement
                 "last_seen_iteration": 0,  # For tracking unique iterations
             }
             continue
@@ -151,12 +163,20 @@ def parse_log(text: str):
         if "no missing coverage found" in line:
             current_execution["coverage_success"] = 1
             current_execution["missing_coverage_lines"] = 0
+            # 100% coverage when no missing lines
+            current_execution["final_coverage_percentage"] = 100.0
         elif match := re.search(r"could not reach lines: ([0-9,\s]+)", line):
             lines_str = match.group(1).replace(" ", "")
             if lines_str:
                 current_execution["missing_coverage_lines"] = len(
                     [x for x in lines_str.split(",") if x]
                 )
+        
+        # Extract actual coverage percentages from gcov output (e.g., "Lines executed:67.5% of 20")
+        if match := re.search(r"Lines executed:(\d+\.\d+)% of \d+", line):
+            coverage_pct = float(match.group(1))
+            # Always update final coverage (baseline is assumed 0%)
+            current_execution["final_coverage_percentage"] = coverage_pct
 
         # ── Special case detections ───────────────────────────────
         if "cache_impossible" in line:
@@ -190,6 +210,15 @@ def parse_log(text: str):
             )
         else:
             current_execution["rating_improvement"] = 0
+        
+        # Calculate total coverage improvement from 0% baseline for final execution
+        if current_execution["final_coverage_percentage"] is not None:
+            current_execution["total_coverage_improvement"] = (
+                current_execution["final_coverage_percentage"]
+                - current_execution["baseline_coverage_percentage"]
+            )
+        else:
+            current_execution["total_coverage_improvement"] = 0
 
         # Check if max iterations reached (configurable via env var)
         max_iter_threshold = int(os.getenv("UNITTENX_MAX_ITERATIONS", "4"))
@@ -235,6 +264,9 @@ def write_csv(rows, outfile):
         "null_pointer_tests",
         "performance_timeouts",
         "reflection_feedback_provided",
+        "baseline_coverage_percentage",
+        "final_coverage_percentage",
+        "total_coverage_improvement",
     ]
 
     with open(outfile, "w", newline="") as f:
@@ -246,7 +278,10 @@ def write_csv(rows, outfile):
             for k in fieldnames:
                 value = row.get(k)
                 if value is None:
-                    filtered_row[k] = 0  # Default to 0 for all None values
+                    if k in ["baseline_coverage_percentage", "final_coverage_percentage"]:
+                        filtered_row[k] = 0.0  # Default to 0.0% for coverage percentages
+                    else:
+                        filtered_row[k] = 0  # Default to 0 for all other None values
                 else:
                     filtered_row[k] = value
             writer.writerow(filtered_row)
@@ -256,16 +291,18 @@ def write_csv(rows, outfile):
 
     # Print summary statistics
     print("\n=== EXTRACTION SUMMARY ===")
-    total_functions = len(rows)
+    total_entries = len(rows)
+    executed_functions = sum(1 for r in rows if r["total_iterations"] > 0)
     successful_coverage = sum(1 for r in rows if r["coverage_success"])
     total_errors = sum(
         r["compilation_errors"] + r["segmentation_faults"] + r["timeouts"] for r in rows
     )
     total_recovery = sum(r["recovery_actions"] for r in rows)
 
-    print(f"Functions processed: {total_functions}")
+    print(f"Total entries extracted: {total_entries}")
+    print(f"Functions that executed: {executed_functions} ({100*executed_functions/total_entries:.1f}%)")
     print(
-        f"Coverage success rate: {successful_coverage}/{total_functions} ({100*successful_coverage/total_functions:.1f}%)"
+        f"Coverage success rate: {successful_coverage}/{executed_functions} ({100*successful_coverage/executed_functions:.1f}%)"
     )
     print(f"Total errors handled: {total_errors}")
     print(f"Total recovery actions: {total_recovery}")
